@@ -1,0 +1,6 @@
+# Instructions: remove a line entirely if you don't want to schedule clearing. Otherwise change the FREQ to a number of Years, Months, Weeks, Days, Hours, xor Seconds .
+FREQ	NEXT	NAME	URI
+2Y		Not This Election Satan	at://did:plc:qcpnd5dlcugj64oqpeepvzwc/app.bsky.graph.list/3l7pdtnzbmy2q
+2Y		Not This Minute Satan	at://did:plc:qcpnd5dlcugj64oqpeepvzwc/app.bsky.graph.list/3l7p55l6cvv24
+2Y		Spam	at://did:plc:qcpnd5dlcugj64oqpeepvzwc/app.bsky.graph.list/3l7eo6s4izz2s
+2Y		Not Today Satan	at://did:plc:qcpnd5dlcugj64oqpeepvzwc/app.bsky.graph.list/3l7e34xeykd2b
