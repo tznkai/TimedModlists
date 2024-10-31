@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35327.3
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "timedlistscript", "timedlistscript\timedlistscript.pyproj", "{96F790B8-8E91-4463-AB2E-478C8C2CCCE3}"
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "timedlistscript", "timedlistscript.pyproj", "{96F790B8-8E91-4463-AB2E-478C8C2CCCE3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,5 +18,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9F809B4E-34EA-4077-A45A-E6F7196C912B}
 	EndGlobalSection
 EndGlobal

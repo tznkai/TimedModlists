@@ -27,7 +27,6 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="sandbox.py" />
     <Compile Include="TimedModlists.py" />
     <Compile Include="buildconfigfile.py" />
   </ItemGroup>

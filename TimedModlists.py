@@ -31,7 +31,7 @@ class DeleteTask:
       self.seconds = float(frequency[0:-1])*seconds
     else:
       raise ValueError("unexpected value, check your config.txt file")
-    self.uri=uri
+    self.uri=uri.strip()
     self.frequency=frequency
     self.name=name
 
