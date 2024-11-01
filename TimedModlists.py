@@ -3,15 +3,17 @@ from atproto import AtUri, Client, client_utils, models
 import os
 import time
 import sched
+import fileinput
 
 #Load environmental variables at runtime.
 load_dotenv()
 MY_HANDLE=os.environ.get("BLUESKY_HANDLE")
 MY_PW=os.environ.get("BLUESKY_PASSWORD")
-
+fmt="%m-%d-%y %H:%M:%S"
 
 class DeleteTask:
-  def __init__(self, frequency:str,  date:str, name:str, uri:str):
+  def __init__(self, frequency:str,  due:str, name:str, uri:str):
+    #determine frequency of task in seconds
     seconds:float
     if frequency.endswith("Y"):
       seconds=365*24*60*60
@@ -34,6 +36,16 @@ class DeleteTask:
     self.uri=uri.strip()
     self.frequency=frequency
     self.name=name
+    if due=="":
+      self.due:float = None
+    else:
+      self.due:float = time.mktime(time.strptime(due,fmt))
+  def duestamp(self):
+      if self.due is None:
+        return ""
+      else:
+        return time.strftime(fmt, time.localtime(self.due))
+        
 
 def delete_list(scheduler:sched.scheduler, task:DeleteTask):
   uri=task.uri
@@ -73,36 +85,89 @@ def delete_list(scheduler:sched.scheduler, task:DeleteTask):
     data = models.ComAtprotoRepoDeleteRecord.Data(collection=obj.collection, rkey=obj.rkey, repo=client.me.did)
     client.com.atproto.repo.delete_record(data)
   print("Done. Rescheduling task")
-  schedule_tasks(scheduler,[task])
+  update_config(schedule_tasks(scheduler,[task]))
   return True
 
 def schedule_tasks(scheduler, tasklist):
   task:DeleteTask
-  for task in tasklist:
-    scheduler.enter(delay=task.seconds,priority=0,action=delete_list, kwargs={"scheduler":scheduler, "task":task})
-    print("scheduled "+task.name)
-  print("it is now: "+str(time.time), "The queue is now")
+  for idx, task in enumerate(tasklist):
+    e:sched.Event = scheduler.enter(delay=task.seconds,priority=1,action=delete_list, kwargs={"scheduler":scheduler, "task":task})
+    print("scheduled", task.name, "for", str(e.time), "local time: "+time.strftime("%m-%d-%y %H:%M:%S",time.localtime(e.time)))
+    task.due = e.time 
+    tasklist[idx]=task
+  print("Epochtime is "+str(time.time()), "local time is", time.strftime("%m-%d-%y %H:%M:%S"), "the queue is now")
   print(scheduler.queue)
-  
-  
+  return tasklist
 
-def main():
-  readmode=False
+def abs_schedule_task(scheduler:sched.scheduler, task:DeleteTask):
+  e:sched.Event = scheduler.enterabs(time=task.due,priority=2,action=delete_list,kwargs={"scheduler":scheduler, "task":task})
+  print("scheduled", task.name, "for", str(e.time), "local time: "+time.strftime("%m-%d-%y %H:%M:%S",time.localtime(e.time)))
+  task.due = e.time
+  print("Epochtime is "+str(time.time()), "local time is", time.strftime("%m-%d-%y %H:%M:%S"), "the queue is now")
+  print(scheduler.queue)
+  return task
+
+def read_config():
+  taskmode=False
   tasklist=[]
   #iterate through config file until task block is found
   print("Reading Config file")
   with open("config.txt", "rt") as text_file:
     for line in text_file:
-      
-      if readmode:
+      if line.strip()=="":
+        pass
+      elif taskmode:
         splitlist = line.split("\t")
-        print("found task:", splitlist)
+        print("found task:", splitlist) 
         tasklist.append( DeleteTask(*splitlist))
-      if "FREQ\tNEXT\tNAME\tURI\n" == line:
-        readmode=True
+      elif "FREQ\tNEXT\tNAME\tURI\n" == line:
+        taskmode=True
+  return tasklist
+
+def eval_config(scheduler:sched.scheduler, tasklist:list):
+  #if there are due time stamps, send to abs_schedule_task to schedule at due. Otherwise, schedule based on frequency
+  task:DeleteTask
+  scheduled_tasks=[]
+  print("Finding already configured lists")
+  modified_tasklist =[]
+  for task in tasklist:
+    print(task.name, str(task.due))
+    if task.due:
+      scheduled_tasks.append(abs_schedule_task(scheduler,task))
+    else:
+      modified_tasklist.append(task)
+  #update config file with already scheduled tasks
+  update_config(scheduled_tasks)
+  #send remainder of non due tasks back for initial scheduling
+  return modified_tasklist
+
+def update_config(tasklist:list):
+  task:DeleteTask
+  print("updating config file")
+  for task in tasklist:
+    print("now working on",task.name,task.duestamp())
+    with fileinput.input("config.txt", inplace=True) as f:
+      for line in f:
+        if task.uri in line:
+          splitline = line.split("\t")
+          splitline[1] = task.duestamp()
+          modified_line= "\t".join(splitline)
+          print(modified_line,end="")
+        else:
+          print(line,end="")
+  print("config.txt is updated")
+  return(tasklist)
+
+def main():
+    #some sort of check needed for restart condition - or build into advanced?   
+    tasklist=read_config()
     print("starting scheduler")
-    s = sched.scheduler(time.monotonic, time.sleep)
-    schedule_tasks(s, tasklist)
+    s = sched.scheduler(time.time, time.sleep)    
+    tasklist=eval_config(s, tasklist)
+    print("scheduling fresh lists")
+    tasklist=update_config(schedule_tasks(s, tasklist))
+    #schedule_tasks(s, tasklist)
+    print("running queue. Leave this process open")
     s.run()
   
 
