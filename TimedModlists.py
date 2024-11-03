@@ -1,19 +1,30 @@
+from ast import Try
+from math import e
 from dotenv import load_dotenv
 from atproto import AtUri, Client, client_utils, models
 import os
 import time
 import sched
 import fileinput
+import sys
 
 #Load environmental variables at runtime.
-load_dotenv()
-MY_HANDLE=os.environ.get("BLUESKY_HANDLE")
-MY_PW=os.environ.get("BLUESKY_PASSWORD")
-fmt="%m-%d-%y %H:%M:%S"
+fmt="%x %X"
+StartProblems=[]
+if not load_dotenv():
+  raise IOError(".env file is missing or incorrectly configured")
+try:
+  MY_HANDLE=os.environ["BLUESKY_HANDLE"]  
+except KeyError:
+  sys.exit("BLUESKY_HANDLE key is missing from .env") 
+try:
+  MY_PW=os.environ["BLUESKY_PASSWORD"]
+except KeyError:
+  sys.exit("BLUESKY_password key is missing from .env")
 
 class DeleteTask:
   def __init__(self, frequency:str,  due:str, name:str, uri:str):
-    #determine frequency of task in seconds
+    #determine time multiplier
     seconds:float
     if frequency.endswith("Y"):
       seconds=365*24*60*60
@@ -28,11 +39,12 @@ class DeleteTask:
     elif frequency.endswith("S"):
       seconds=1
     else:
-      raise ValueError("unexpected value, check your config.txt file")
+      raise ValueError("unexpected time unit code, check your config.txt file")
+    #multiply number by time unit
     if frequency[0:-1].isnumeric():
       self.seconds = float(frequency[0:-1])*seconds
     else:
-      raise ValueError("unexpected value, check your config.txt file")
+      raise ValueError("unexpected time amount, check your config.txt file")
     self.uri=uri.strip()
     self.frequency=frequency
     self.name=name
@@ -112,16 +124,22 @@ def read_config():
   tasklist=[]
   #iterate through config file until task block is found
   print("Reading Config file")
-  with open("config.txt", "rt") as text_file:
-    for line in text_file:
-      if line.strip()=="":
-        pass
-      elif taskmode:
-        splitlist = line.split("\t")
-        print("found task:", splitlist) 
-        tasklist.append( DeleteTask(*splitlist))
-      elif "FREQ\tNEXT\tNAME\tURI\n" == line:
-        taskmode=True
+  try:
+    with open("config.txt", "rt") as text_file:
+      for line in text_file:
+        if line.strip()=="":
+          pass
+        elif taskmode:
+          splitlist = line.split("\t")
+          print("found task:", splitlist) 
+          tasklist.append( DeleteTask(*splitlist))
+        elif "FREQ\tNEXT\tNAME\tURI\n" == line:
+          taskmode=True
+  except FileNotFoundError:
+    print("Config file not found. Attempting to build default config file.")
+    from buildconfigfile import buildconfig
+    buildconfig()
+    sys.exit("Exiting - please modify your config file")
   return tasklist
 
 def eval_config(scheduler:sched.scheduler, tasklist:list):
@@ -142,6 +160,7 @@ def eval_config(scheduler:sched.scheduler, tasklist:list):
   return modified_tasklist
 
 def update_config(tasklist:list):
+  #updates config file
   task:DeleteTask
   print("updating config file")
   for task in tasklist:
@@ -159,18 +178,17 @@ def update_config(tasklist:list):
   return(tasklist)
 
 def main():
-    #some sort of check needed for restart condition - or build into advanced?   
+    #Reads from config file to get initial tasklist 
     tasklist=read_config()
     print("starting scheduler")
-    s = sched.scheduler(time.time, time.sleep)    
+    s = sched.scheduler(time.time, time.sleep)
+    #pass tasklist to eval_config to schedule already timestamped tasks - config is updated in eval_config()
     tasklist=eval_config(s, tasklist)
     print("scheduling fresh lists")
+    #schedule remaining tasks, and update config.
     tasklist=update_config(schedule_tasks(s, tasklist))
-    #schedule_tasks(s, tasklist)
     print("running queue. Leave this process open")
     s.run()
-  
-
 
 if __name__ == "__main__":
   main()

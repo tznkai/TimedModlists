@@ -9,8 +9,8 @@ This a set of python scripts to enabled timed blocks/mutes by adding to modlists
 > BLUESKY_HANDLE=noat.your.handle
 > BLUESKY_PASSWORD=whateveryourapppasswordis
 5. Run buildconfigfile.py. A file called config.txt will be created with all your modlists.
-6. Edit config.txt by removing any modlists you don't want to clear. Also change the frequency using a a number and a single letter code for time unit. **Y**ears **M**onths **D**ays **H**ours or **S**econds.
-7. If you want to set a modlist to expire for a certain date and time and then recur from there, run TimedModlists.py once to get the format, then break the proccess. Modify the dates (MM-DD-YY) and hours (HH:MM:SS) in config.txt using your local time. If you only want to clear it once set the reoccurance for 99Y or something.
+6. Edit config.txt by removing any modlists you don't want to clear. Also change the frequency using a a number and a single letter code for time unit. **Y**ears **D**ays **H**ours or **S**econds.
+7. If you want to set a modlist to expire for a certain date and time and then recur from there, run TimedModlists.py once to get the format, then break the proccess. Modify the dates and time (set on an offset and format based on your locale) in config.txt using your local time. If you only want to clear it once set the reoccurance for 99Y or something.
 
 # Use
 1. Add people to your modlists through the bluesky interface.
@@ -23,7 +23,6 @@ The script is currently fragile and will fail if any of your configuration is do
 On restart, no adjustments are made for DST and stored times are only accurate to the second.
 
 # Features to come
-- Error handling
-- Duplication detection
+- ~~Duplication detection~~ This is better handled by your scheduling utility
 - More elegant single use configuration
-- localized time formats, DST handling, other improved date/time handling
+- ~~other improved date/time handling~~ More precise month handling isn't worth the extra work.
